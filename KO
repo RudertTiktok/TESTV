@@ -276,93 +276,93 @@ end
 
 -- Check if the ball trajectory is curved
 function AutoParry.IsCurved()
-	local target = AutoParry.target.current
+    local target = AutoParry.Target.Current
 
-	if not target then
-		return false
-	end
+    if not target then
+        return false
+    end
 
-	local ball_properties = AutoParry.ball.properties
-	local current_target = AutoParry.target.current.Name
+    local ball_properties = AutoParry.Ball.Properties
+    local current_target = AutoParry.Target.Current.Name
 
-	if target.PrimaryPart:FindFirstChild('MaxShield') and current_target ~= LocalPlayer.Name and ball_properties.distance < 50 then
-		return false
-	end
+    if target.PrimaryPart:FindFirstChild('MaxShield') and current_target ~= LocalPlayer.Name and ball_properties.Distance < 50 then
+        return false
+    end
 
-	if AutoParry.ball.ball_entity:FindFirstChild('TimeHole1') and current_target ~= LocalPlayer.Name and ball_properties.distance < 100 then
-		ball_properties.AutoSpam = false
-		
-		return false
-	end
+    if AutoParry.Ball.BallEntity:FindFirstChild('TimeHole1') and current_target ~= LocalPlayer.Name and ball_properties.Distance < 100 then
+        ball_properties.AutoSpam = false
+        
+        return false
+    end
 
-	if AutoParry.ball.ball_entity:FindFirstChild('WEMAZOOKIEGO') and current_target ~= LocalPlayer.Name and ball_properties.distance < 100 then
-		return false
-	end
+    if AutoParry.Ball.BallEntity:FindFirstChild('WEMAZOOKIEGO') and current_target ~= LocalPlayer.Name and ball_properties.Distance < 100 then
+        return false
+    end
 
-	if AutoParry.ball.ball_entity:FindFirstChild('At2') and ball_properties.speed <= 0 then
-		return true
-	end
+    if AutoParry.Ball.BallEntity:FindFirstChild('At2') and ball_properties.Speed <= 0 then
+        return true
+    end
 
-	if AutoParry.ball.ball_entity:FindFirstChild('AeroDynamicSlashVFX') then
-		Debris:AddItem(AutoParry.ball.ball_entity.AeroDynamicSlashVFX, 0)
+    if AutoParry.Ball.BallEntity:FindFirstChild('AeroDynamicSlashVFX') then
+        Debris:AddItem(AutoParry.Ball.BallEntity.AeroDynamicSlashVFX, 0)
 
-		ball_properties.AutoSpam = false
-		ball_properties.aero_dynamic_time = tick()
-	end
+        ball_properties.AutoSpam = false
+        ball_properties.AeroDynamicTime = tick()
+    end
 
-	if RunTime:FindFirstChild('Tornado') then
-		if ball_properties.distance > 5 and (tick() - ball_properties.aero_dynamic_time) < (RunTime.Tornado:GetAttribute("TornadoTime") or 1) + 0.314159 then
-			return true
-		end
-	end
+    if RunTime:FindFirstChild('Tornado') then
+        if ball_properties.Distance > 5 and (tick() - ball_properties.AeroDynamicTime) < (RunTime.Tornado:GetAttribute("TornadoTime") or 1) + 0.314159 then
+            return true
+        end
+    end
 
-	if not ball_properties.hell_hook_completed and target.Name == LocalPlayer.Name and ball_properties.distance > 5 - math.random() then
-		return true
-	end
-	
-	local ball_direction = ball_properties.velocity.Unit
-	local ball_speed = ball_properties.speed
-	
-	local speed_threshold = math.min(ball_speed / 100, 40)
-	local angle_threshold = 40 * math.max(ball_properties.dot, 0)
+    if not ball_properties.HellHookCompleted and target.Name == LocalPlayer.Name and ball_properties.Distance > 5 - math.random() then
+        return true
+    end
+    
+    local ball_direction = ball_properties.Velocity.Unit
+    local ball_speed = ball_properties.Speed
+    
+    local speed_threshold = math.min(ball_speed / 100, 40)
+    local angle_threshold = 40 * math.max(ball_properties.Dot, 0)
 
-	local player_ping = Player.Entity.properties.ping
+    local player_ping = Player.Entity.Properties.Ping
 
-	local accurate_direction = ball_properties.velocity.Unit
-	accurate_direction *= ball_direction
+    local accurate_direction = ball_properties.Velocity.Unit
+    accurate_direction *= ball_direction
 
-	local direction_difference = (accurate_direction - ball_properties.velocity).Unit
-	local accurate_dot = ball_properties.direction:Dot(direction_difference)
-	local dot_difference = ball_properties.dot - accurate_dot
-	local dot_threshold = 0.5 - player_ping / 1000
+    local direction_difference = (accurate_direction - ball_properties.Velocity).Unit
+    local accurate_dot = ball_properties.Direction:Dot(direction_difference)
+    local dot_difference = ball_properties.Dot - accurate_dot
+    local dot_threshold = 0.5 - player_ping / 1000
 
-	local reach_time = ball_properties.distance / ball_properties.maximum_speed - (player_ping / 1000)
-	local enough_speed = ball_properties.maximum_speed > 100
+    local reach_time = ball_properties.Distance / ball_properties.MaximumSpeed - (player_ping / 1000)
+    local enough_speed = ball_properties.MaximumSpeed > 100
 
-	local ball_distance_threshold = 15 - math.min(ball_properties.distance / 1000, 15) + angle_threshold + speed_threshold
-	
-	if enough_speed and reach_time > player_ping / 10 then
+    local ball_distance_threshold = 15 - math.min(ball_properties.Distance / 1000, 15) + angle_threshold + speed_threshold
+    
+    if enough_speed and reach_time > player_ping / 10 then
         ball_distance_threshold = math.max(ball_distance_threshold - 15, 15)
     end
-	
-	if ball_properties.distance < ball_distance_threshold then
-		return false
-	end
+    
+    if ball_properties.Distance < ball_distance_threshold then
+        return false
+    end
 
-	if dot_difference < dot_threshold then
-		return true
-	end
+    if dot_difference < dot_threshold then
+        return true
+    end
 
-	if ball_properties.lerp_radians < 0.018 then
-		ball_properties.last_curve_position = ball_properties.position
-		ball_properties.last_warping = tick() 
-	end
+    if ball_properties.LerpRadians < 0.018 then
+        ball_properties.LastCurvePosition = ball_properties.Position
+        ball_properties.LastWarping = tick() 
+    end
 
-	if (tick() - ball_properties.last_warping) < (reach_time / 1.5) then
-		return true
-	end
+    if (tick() - ball_properties.LastWarping) < (reach_time / 1.5) then
+        return true
+    end
 
-	return ball_properties.dot < dot_threshold
+    return ball_properties.Dot < dot_threshold
 end
 
 local OldFromTarget = nil :: Model 
