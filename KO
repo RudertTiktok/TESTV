@@ -59,8 +59,8 @@ local AutoParry = {
             MaximumSpeed = 0,
             LastHit = 0,
             Parries = 0,
-            SpamRange = 0,
-            ParryRange = 0,
+            SpamRange = 2,
+            ParryRange = 3,
             AutoSpam = false,
             Cooldown = false,
             LastWarping = tick(),
@@ -267,7 +267,7 @@ function AutoParry.PerformParry()
     AutoParry.Ball.Properties.Cooldown = true
     LastParryTime = tick()
     AutoParry.PlayParryAnimation()
-    task.delay(0.3, function()
+    task.delay(0.25, function()
         if ParryCount > 0 then
             ParryCount -= 1
         end
@@ -276,76 +276,97 @@ end
 
 -- Check if the ball trajectory is curved
 function AutoParry.IsCurved()
-    local Target = AutoParry.Target.Current
-    if not Target then
-        return false
+	local target = AutoParry.target.current
+
+	if not target then
+		return false
+	end
+
+	local ball_properties = AutoParry.ball.properties
+	local current_target = AutoParry.target.current.Name
+
+	if target.PrimaryPart:FindFirstChild('MaxShield') and current_target ~= LocalPlayer.Name and ball_properties.distance < 50 then
+		return false
+	end
+
+	if AutoParry.ball.ball_entity:FindFirstChild('TimeHole1') and current_target ~= LocalPlayer.Name and ball_properties.distance < 100 then
+		ball_properties.AutoSpam = false
+		
+		return false
+	end
+
+	if AutoParry.ball.ball_entity:FindFirstChild('WEMAZOOKIEGO') and current_target ~= LocalPlayer.Name and ball_properties.distance < 100 then
+		return false
+	end
+
+	if AutoParry.ball.ball_entity:FindFirstChild('At2') and ball_properties.speed <= 0 then
+		return true
+	end
+
+	if AutoParry.ball.ball_entity:FindFirstChild('AeroDynamicSlashVFX') then
+		Debris:AddItem(AutoParry.ball.ball_entity.AeroDynamicSlashVFX, 0)
+
+		ball_properties.AutoSpam = false
+		ball_properties.aero_dynamic_time = tick()
+	end
+
+	if RunTime:FindFirstChild('Tornado') then
+		if ball_properties.distance > 5 and (tick() - ball_properties.aero_dynamic_time) < (RunTime.Tornado:GetAttribute("TornadoTime") or 1) + 0.314159 then
+			return true
+		end
+	end
+
+	if not ball_properties.hell_hook_completed and target.Name == LocalPlayer.Name and ball_properties.distance > 5 - math.random() then
+		return true
+	end
+	
+	local ball_direction = ball_properties.velocity.Unit
+	local ball_speed = ball_properties.speed
+	
+	local speed_threshold = math.min(ball_speed / 100, 40)
+	local angle_threshold = 40 * math.max(ball_properties.dot, 0)
+
+	local player_ping = Player.Entity.properties.ping
+
+	local accurate_direction = ball_properties.velocity.Unit
+	accurate_direction *= ball_direction
+
+	local direction_difference = (accurate_direction - ball_properties.velocity).Unit
+	local accurate_dot = ball_properties.direction:Dot(direction_difference)
+	local dot_difference = ball_properties.dot - accurate_dot
+	local dot_threshold = 0.5 - player_ping / 1000
+
+	local reach_time = ball_properties.distance / ball_properties.maximum_speed - (player_ping / 1000)
+	local enough_speed = ball_properties.maximum_speed > 100
+
+	local ball_distance_threshold = 15 - math.min(ball_properties.distance / 1000, 15) + angle_threshold + speed_threshold
+	
+	if enough_speed and reach_time > player_ping / 10 then
+        ball_distance_threshold = math.max(ball_distance_threshold - 15, 15)
     end
-    local BallProperties = AutoParry.Ball.Properties
-    local CurrentTarget = Target.Name
-    if Target.PrimaryPart and Target.PrimaryPart:FindFirstChild('MaxShield') and CurrentTarget ~= LocalPlayer.Name and BallProperties.Distance < 50 then
-        return false
-    end
-    if AutoParry.Ball.BallEntity and AutoParry.Ball.BallEntity:FindFirstChild('TimeHole1') and CurrentTarget ~= LocalPlayer.Name and BallProperties.Distance < 100 then
-        BallProperties.AutoSpam = false
-        return false
-    end
-    if AutoParry.Ball.BallEntity and AutoParry.Ball.BallEntity:FindFirstChild('WEMAZOOKIEGO') and CurrentTarget ~= LocalPlayer.Name and BallProperties.Distance < 100 then
-        return false
-    end
-    if AutoParry.Ball.BallEntity and AutoParry.Ball.BallEntity:FindFirstChild('At2') and BallProperties.Speed <= 0 then
-        return true
-    end
-    if AutoParry.Ball.BallEntity and AutoParry.Ball.BallEntity:FindFirstChild('AeroDynamicSlashVFX') then
-        Debris:AddItem(AutoParry.Ball.BallEntity.AeroDynamicSlashVFX, 0)
-        BallProperties.AutoSpam = false
-        BallProperties.AeroDynamicTime = tick()
-    end
-    if RunTime:FindFirstChild('Tornado') then
-        if BallProperties.Distance > 5 and (tick() - BallProperties.AeroDynamicTime) < (RunTime.Tornado:GetAttribute("TornadoTime") or 1) + 0.314159 then
-            return true
-        end
-    end
-    if not BallProperties.HellHookCompleted and Target.Name == LocalPlayer.Name and BallProperties.Distance > 5 - math.random() then
-        return true
-    end
-    local ballDirection = BallProperties.Velocity.Magnitude > 0 and BallProperties.Velocity.Unit or Vector3.zero
-    local ballSpeed = BallProperties.Speed
-    local speedThreshold = math.min(ballSpeed / 100, 40)
-    local angleThreshold = 40 * math.max(BallProperties.Dot, 0)
-    local playerPing = Player.Entity.Properties.Ping
-    local accurateDirection = ballDirection
-    if BallProperties.Velocity.Magnitude > 0 then
-        accurateDirection = accurateDirection * ballDirection
-    end
-    local directionDifference = BallProperties.Velocity.Magnitude > 0 and (accurateDirection - BallProperties.Velocity).Unit or Vector3.zero
-    local accurateDot = BallProperties.Direction:Dot(directionDifference)
-    local dotDifference = BallProperties.Dot - accurateDot
-    local dotThreshold = 0.5 - playerPing / 1000
-    local reachTime = BallProperties.MaximumSpeed > 0 and BallProperties.Distance / BallProperties.MaximumSpeed - (playerPing / 1000) or 0
-    local enoughSpeed = BallProperties.MaximumSpeed > 100
-    local ballDistanceThreshold = 15 - math.min(BallProperties.Distance / 1000, 15) + angleThreshold + speedThreshold
-    if enoughSpeed and reachTime > playerPing / 10 then
-        ballDistanceThreshold = math.max(ballDistanceThreshold - 15, 15)
-    end
-    if BallProperties.Distance < ballDistanceThreshold then
-        return false
-    end
-    if dotDifference < dotThreshold then
-        return true
-    end
-    if BallProperties.LerpRadians < 0.018 then
-        BallProperties.LastCurvePosition = BallProperties.Position
-        BallProperties.LastWarping = tick()
-    end
-    if (tick() - BallProperties.LastWarping) < (reachTime / 1.5) then
-        return true
-    end
-    return BallProperties.Dot < dotThreshold
+	
+	if ball_properties.distance < ball_distance_threshold then
+		return false
+	end
+
+	if dot_difference < dot_threshold then
+		return true
+	end
+
+	if ball_properties.lerp_radians < 0.018 then
+		ball_properties.last_curve_position = ball_properties.position
+		ball_properties.last_warping = tick() 
+	end
+
+	if (tick() - ball_properties.last_warping) < (reach_time / 1.5) then
+		return true
+	end
+
+	return ball_properties.dot < dot_threshold
 end
 
-local OldFromTarget = nil
+local OldFromTarget = nil :: Model 
 
--- Check if conditions allow spamming parry
 function AutoParry:IsSpam(params)
     local BallProperties = AutoParry.Ball.Properties
     if BallProperties.IsCurved then
@@ -652,8 +673,8 @@ Connections['auto_parry'] = RunService.PostSimulation:Connect(function()
     end
     local BallProperties = AutoParry.Ball.Properties
     BallProperties.IsCurved = AutoParry.IsCurved()
-    local pingThreshold = math.clamp(Player.Entity.Properties.Ping / 10, 10, 20)
-    local spamAccuracy = BallProperties.MaximumSpeed / 7.0 + pingThreshold
+    local pingThreshold = math.clamp(Player.Entity.Properties.Ping / 10, 10, 16)
+    local spamAccuracy = BallProperties.MaximumSpeed / 7.2 + pingThreshold
     local parryAccuracy = BallProperties.MaximumSpeed / 11.5 + pingThreshold
     BallProperties.SpamRange = pingThreshold + BallProperties.Speed / 2.2
     BallProperties.ParryRange = pingThreshold + BallProperties.Speed / math.pi
@@ -710,7 +731,7 @@ Connections['auto_parry'] = RunService.PostSimulation:Connect(function()
     task.spawn(function()
         repeat
             RunService.PreSimulation:Wait(0)
-        until (tick() - BallProperties.LastHit) > 0.8 - (pingThreshold / 150)
+        until (tick() - BallProperties.LastHit) > 1 - (pingThreshold / 100)
         BallProperties.Cooldown = false
     end)
 end)
